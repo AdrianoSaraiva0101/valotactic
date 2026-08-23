@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<title>Tactic3D — Demo</title>
+<style>
+  :root{
+    --bg:#0a0d12; --panel:#11151b; --panel2:#161b23; --border:#232a34;
+    --accent:#28e0a4; --accent-dim:#173b30; --amber:#ffb020;
+    --red:#ff5c72; --blue:#4fa3ff; --text:#e7ebf0; --muted:#7c8794;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--text);
+    font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;overflow:hidden;}
+  #app{display:grid;grid-template-columns:220px 56px 1fr 260px;grid-template-rows:48px 1fr 150px;
+    height:100vh;}
+  header{grid-column:1/5;grid-row:1;display:flex;align-items:center;gap:16px;
+    background:var(--panel);border-bottom:1px solid var(--border);padding:0 16px;}
+  header .logo{font-weight:700;letter-spacing:.5px;font-size:14px;color:var(--accent);}
+  header .logo span{color:var(--muted);font-weight:400;}
+  header .views{display:flex;gap:6px;margin-left:auto;}
+  header .views button, header .impexp button{
+    background:var(--panel2);border:1px solid var(--border);color:var(--text);
+    padding:6px 10px;border-radius:6px;font-size:12px;cursor:pointer;}
+  header .views button.active{border-color:var(--accent);color:var(--accent);}
+  header .impexp{display:flex;gap:8px;}
+  aside.sidebar{grid-column:1;grid-row:2/4;background:var(--panel);border-right:1px solid var(--border);
+    overflow-y:auto;padding:12px;}
+  .sidebar h4{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:14px 0 8px;}
+  .sidebar h4:first-child{margin-top:0;}
+  .team-toggle{display:flex;background:var(--panel2);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+  .team-toggle button{flex:1;background:transparent;border:none;color:var(--muted);padding:6px 0;font-size:12px;cursor:pointer;}
+  .team-toggle button.active[data-team="atk"]{background:rgba(255,92,114,.15);color:var(--red);}
+  .team-toggle button.active[data-team="def"]{background:rgba(79,163,255,.15);color:var(--blue);}
+  .agent-card{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:6px;cursor:pointer;
+    border:1px solid transparent;margin-bottom:4px;font-size:12px;}
+  .agent-card:hover{background:var(--panel2);}
+  .agent-card.active{border-color:var(--accent);background:var(--accent-dim);}
+  .agent-swatch{width:22px;height:22px;border-radius:5px;display:flex;align-items:center;justify-content:center;
+    font-size:11px;font-weight:700;color:#0a0d12;flex-shrink:0;}
+  .agent-role{color:var(--muted);font-size:10px;}
+  .player-row{display:flex;align-items:center;gap:6px;padding:5px 6px;border-radius:5px;font-size:12px;cursor:pointer;}
+  .player-row:hover{background:var(--panel2);}
+  .player-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+  nav.toolbar{grid-column:2;grid-row:2/4;background:var(--panel);border-right:1px solid var(--border);
+    display:flex;flex-direction:column;align-items:center;padding:10px 0;gap:6px;}
+  nav.toolbar button{width:38px;height:38px;background:var(--panel2);border:1px solid var(--border);
+    border-radius:8px;color:var(--text);cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;}
+  nav.toolbar button.active{border-color:var(--accent);color:var(--accent);background:var(--accent-dim);}
+  nav.toolbar .sep{width:24px;height:1px;background:var(--border);margin:4px 0;}
+  main#viewport{grid-column:3;grid-row:2;position:relative;background:#05070a;}
+  main#viewport canvas{display:block;width:100%;height:100%;}
+  #hint{position:absolute;top:10px;left:10px;background:rgba(17,21,27,.85);border:1px solid var(--border);
+    padding:6px 10px;border-radius:6px;font-size:11px;color:var(--muted);pointer-events:none;}
+  aside.props{grid-column:4;grid-row:2;background:var(--panel);border-left:1px solid var(--border);
+    padding:14px;overflow-y:auto;}
+  aside.props h4{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 10px;}
+  aside.props label{display:block;font-size:11px;color:var(--muted);margin:10px 0 4px;}
+  aside.props input[type=text]{width:100%;background:var(--panel2);border:1px solid var(--border);color:var(--text);
+    padding:6px 8px;border-radius:6px;font-size:12px;}
+  aside.props .empty{color:var(--muted);font-size:12px;line-height:1.6;}
+  aside.props button.danger{margin-top:14px;width:100%;background:rgba(255,92,114,.12);border:1px solid var(--red);
+    color:var(--red);padding:7px;border-radius:6px;cursor:pointer;font-size:12px;}
+  footer#timeline{grid-column:3/5;grid-row:3;background:var(--panel);border-left:1px solid var(--border);
+    border-top:1px solid var(--border);padding:10px 14px;display:flex;flex-direction:column;gap:8px;}
+  #timeline .controls{display:flex;align-items:center;gap:8px;}
+  #timeline .controls button{background:var(--panel2);border:1px solid var(--border);color:var(--text);
+    width:32px;height:32px;border-radius:6px;cursor:pointer;font-size:13px;}
+  #timeline .controls button#playBtn{background:var(--accent-dim);border-color:var(--accent);color:var(--accent);width:auto;padding:0 14px;}
+  #timeline .steps{display:flex;gap:8px;flex:1;overflow-x:auto;padding-bottom:2px;}
+  .step-chip{flex-shrink:0;padding:6px 12px;background:var(--panel2);border:1px solid var(--border);border-radius:6px;
+    font-size:11px;cursor:pointer;white-space:nowrap;}
+  .step-chip.active{border-color:var(--amber);color:var(--amber);}
+  #timeline select{background:var(--panel2);border:1px solid var(--border);color:var(--text);border-radius:6px;
+    font-size:11px;padding:5px 8px;}
+  ::-webkit-scrollbar{width:8px;height:8px;} ::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="logo">TACTIC3D <span>— protótipo de planejamento tático</span></div>
+    <div class="views">
+      <button data-view="orbit" class="active">Câmera livre</button>
+      <button data-view="top">Vista superior</button>
+      <button data-view="third">3ª pessoa</button>
+    </div>
+    <div class="impexp">
+      <button id="exportBtn">Exportar .json</button>
+      <button id="importBtn">Importar</button>
+      <input type="file" id="fileInput" accept=".json" style="display:none">
+    </div>
+  </header>
+
+  <aside class="sidebar">
+    <h4>Equipe</h4>
+    <div class="team-toggle">
+      <button data-team="atk" class="active">Ataque</button>
+      <button data-team="def">Defesa</button>
+    </div>
+
+    <h4>Agentes</h4>
+    <div id="agentList"></div>
+
+    <h4>Jogadores no mapa</h4>
+    <div id="playerList" style="font-size:12px;color:var(--muted);">Nenhum jogador posicionado ainda.</div>
+  </aside>
+
+  <nav class="toolbar" id="toolbar">
+    <button data-tool="select" class="active" title="Selecionar">▣</button>
+    <button data-tool="player" title="Posicionar jogador">◉</button>
+    <div class="sep"></div>
+    <button data-tool="line" title="Linha">╱</button>
+    <button data-tool="arrow" title="Seta">➤</button>
+    <button data-tool="circle" title="Área circular">○</button>
+    <button data-tool="marker" title="Marcador">✚</button>
+    <button data-tool="text" title="Texto">T</button>
+    <div class="sep"></div>
+    <button data-tool="delete" title="Excluir selecionado">✕</button>
+  </nav>
+
+  <main id="viewport">
+    <div id="hint">Selecione "Posicionar jogador" e clique no mapa. Arraste para orbitar, roda para zoom.</div>
+  </main>
+
+  <aside class="props" id="propsPanel">
+    <h4>Propriedades</h4>
+    <div class="empty">Selecione um jogador ou objeto no mapa para editar.</div>
+  </aside>
+
+  <footer id="timeline">
+    <div class="controls">
+      <button id="playBtn">▶ Reproduzir</button>
+      <button id="addStepBtn" title="Adicionar etapa a partir das posições atuais">+ Etapa</button>
+      <select id="speedSel">
+        <option value="2000">Velocidade: lenta</option>
+        <option value="1000" selected>Velocidade: normal</option>
+        <option value="500">Velocidade: rápida</option>
+      </select>
+      <span style="font-size:11px;color:var(--muted);" id="stepInfo">0 etapas</span>
+    </div>
+    <div class="steps" id="stepList"></div>
+  </footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ---------- Dados mockados de agentes (substituíveis por API no futuro) ---------- */
+const AGENTS = [
+  {id:'jett',  name:'Jett',  role:'Duelista',  color:0x9be7c4},
+  {id:'sova',  name:'Sova',  role:'Iniciador', color:0x4fa3ff},
+  {id:'sage',  name:'Sage',  role:'Sentinela', color:0x8fd3f4},
+  {id:'omen',  name:'Omen',  role:'Controlador',color:0x8a6bd1},
+  {id:'killjoy',name:'Killjoy',role:'Sentinela',color:0xf4d35e},
+  {id:'raze',  name:'Raze',  role:'Duelista',  color:0xff9f45},
+];
+
+/* ---------- Layout do mapa (abstrato, inspirado em callouts genéricos) ---------- */
+const MAP = {
+  size: 80,
+  walls: [
+    {x:-30,z:-30,w:60,d:2,h:6},{x:-30,z:30,w:60,d:2,h:6},
+    {x:-30,z:0,w:2,d:60,h:6},{x:30,z:0,w:2,d:60,h:6},
+    {x:-10,z:-10,w:2,d:20,h:6},{x:12,z:8,w:16,d:2,h:6},
+    {x:-18,z:16,w:14,d:2,h:6},{x:20,z:-16,w:2,d:16,h:6},
+  ],
+  callouts: [
+    {x:-22,z:-22,label:'Site A'}, {x:22,z:22,label:'Site B'},
+    {x:0,z:0,label:'Meio'}, {x:-22,z:22,label:'Spawn Atk'},
+    {x:22,z:-22,label:'Spawn Def'},
+  ]
+};
+
+/* ---------- Setup Three.js ---------- */
+const viewport = document.getElementById('viewport');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x05070a);
+scene.fog = new THREE.Fog(0x05070a, 60, 140);
+
+const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 500);
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+viewport.appendChild(renderer.domElement);
+
+const hemi = new THREE.HemisphereLight(0x8fb6d9, 0x1a1f26, 0.9);
+scene.add(hemi);
+const dir = new THREE.DirectionalLight(0xffffff, 0.7);
+dir.position.set(40,60,20);
+scene.add(dir);
+
+// floor
+const floorGeo = new THREE.PlaneGeometry(MAP.size, MAP.size, 20, 20);
+const floorMat = new THREE.MeshStandardMaterial({color:0x161b22, roughness:0.9});
+const floor = new THREE.Mesh(floorGeo, floorMat);
+floor.rotation.x = -Math.PI/2;
+scene.add(floor);
+
+const grid = new THREE.GridHelper(MAP.size, 20, 0x28e0a4, 0x1b222b);
+grid.position.y = 0.01;
+scene.add(grid);
+
+// walls
+const wallMat = new THREE.MeshStandardMaterial({color:0x2a3542, roughness:0.8});
+MAP.walls.forEach(w=>{
+  const geo = new THREE.BoxGeometry(w.w, w.h, w.d);
+  const mesh = new THREE.Mesh(geo, wallMat);
+  mesh.position.set(w.x, w.h/2, w.z);
+  scene.add(mesh);
+});
+
+// callouts (text sprites)
+function makeTextSprite(text, opts={}){
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  const scale = 8;
+  canvas.width = 256; canvas.height = 64;
+  ctx.font = `700 ${opts.size||28}px sans-serif`;
+  ctx.fillStyle = opts.bg || 'rgba(10,13,18,0.75)';
+  const w = ctx.measureText(text).width;
+  ctx.fillRect(0,10,w+20,44);
+  ctx.fillStyle = opts.color || '#e7ebf0';
+  ctx.fillText(text, 10, 42);
+  const tex = new THREE.CanvasTexture(canvas);
+  const mat = new THREE.SpriteMaterial({map:tex, depthTest:false});
+  const sprite = new THREE.Sprite(mat);
+  sprite.scale.set((w+20)/scale, 44/scale, 1);
+  sprite.renderOrder = 999;
+  return sprite;
+}
+MAP.callouts.forEach(c=>{
+  const s = makeTextSprite(c.label,{size:26});
+  s.position.set(c.x, 5, c.z);
+  scene.add(s);
+});
+
+/* ---------- Controle de câmera (orbit/pan/zoom manual, sem dependências extras) ---------- */
+let camTarget = new THREE.Vector3(0,0,0);
+let camDist = 55, camTheta = Math.PI/4, camPhi = 0.95;
+function updateCamera(){
+  const x = camTarget.x + camDist*Math.sin(camPhi)*Math.sin(camTheta);
+  const y = camTarget.y + camDist*Math.cos(camPhi);
+  const z = camTarget.z + camDist*Math.sin(camPhi)*Math.cos(camTheta);
+  camera.position.set(x,y,z);
+  camera.lookAt(camTarget);
+}
+updateCamera();
+
+let dragging=false, lastX=0, lastY=0, panning=false;
+renderer.domElement.addEventListener('mousedown', e=>{
+  dragging=true; panning = e.button===2; lastX=e.clientX; lastY=e.clientY;
+});
+window.addEventListener('mouseup', ()=>dragging=false);
+window.addEventListener('mousemove', e=>{
+  if(!dragging || currentView!=='orbit') return;
+  const dx=e.clientX-lastX, dy=e.clientY-lastY; lastX=e.clientX; lastY=e.clientY;
+  if(panning){
+    const right = new THREE.Vector3().setFromMatrixColumn(camera.matrix,0);
+    const up = new THREE.Vector3().setFromMatrixColumn(camera.matrix,1);
+    camTarget.addScaledVector(right, -dx*0.05);
+    camTarget.addScaledVector(up, dy*0.05);
+  } else {
+    camTheta -= dx*0.006; camPhi = Math.min(1.5, Math.max(0.15, camPhi - dy*0.006));
+  }
+  updateCamera();
+});
+renderer.domElement.addEventListener('contextmenu', e=>e.preventDefault());
+renderer.domElement.addEventListener('wheel', e=>{
+  camDist = Math.min(120, Math.max(8, camDist + e.deltaY*0.03));
+  updateCamera();
+});
+
+let currentView = 'orbit';
+document.querySelectorAll('.views button').forEach(b=>{
+  b.onclick = ()=>{
+    document.querySelectorAll('.views button').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    currentView = b.dataset.view;
+    if(currentView==='top'){ camPhi=0.01; camDist=70; camTheta=0.0001; updateCamera(); }
+    if(currentView==='third'){ camPhi=1.3; camDist=18; updateCamera(); }
+    if(currentView==='orbit'){ camPhi=0.95; camDist=55; updateCamera(); }
+  };
+});
+
+function resize(){
+  const w = viewport.clientWidth, h = viewport.clientHeight;
+  camera.aspect = w/h; camera.updateProjectionMatrix();
+  renderer.setSize(w,h);
+}
+window.addEventListener('resize', resize);
+
+/* ---------- Estado da aplicação ---------- */
+let selectedAgent = AGENTS[0];
+let currentTeam = 'atk';
+let currentTool = 'select';
+let players = [];       // {id, mesh, label, name, agent, team, number}
+let drawings = [];       // {id, type, mesh, points}
+let steps = [];          // [{players:[{id,x,z}]}]
+let activeStepIndex = -1;
+let selected = null;     // selected player object
+let drawBuffer = [];     // points while drawing a shape
+let playerCounter = 1;
+
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+
+function screenToFloor(e){
+  const rect = renderer.domElement.getBoundingClientRect();
+  mouse.x = ((e.clientX-rect.left)/rect.width)*2-1;
+  mouse.y = -((e.clientY-rect.top)/rect.height)*2+1;
+  raycaster.setFromCamera(mouse, camera);
+  const hit = raycaster.intersectObject(floor)[0];
+  return hit ? hit.point : null;
+}
+
+function makePlayerMesh(color){
+  const group = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.9,0.9,2,16),
+    new THREE.MeshStandardMaterial({color}));
+  body.position.y = 1;
+  const head = new THREE.Mesh(new THREE.ConeGeometry(0.9,1.4,16),
+    new THREE.MeshStandardMaterial({color}));
+  head.position.y = 2.4;
+  const ring = new THREE.Mesh(new THREE.RingGeometry(1.1,1.4,24),
+    new THREE.MeshBasicMaterial({color, side:THREE.DoubleSide, transparent:true, opacity:0.6}));
+  ring.rotation.x = -Math.PI/2; ring.position.y = 0.02;
+  group.add(body, head, ring);
+  return group;
+}
+
+function addPlayer(pos){
+  const teamColor = currentTeam==='atk' ? 0xff5c72 : 0x4fa3ff;
+  const mesh = makePlayerMesh(teamColor);
+  mesh.position.copy(pos);
+  scene.add(mesh);
+  const num = playerCounter++;
+  const label = makeTextSprite(`${selectedAgent.name} #${num}`,{size:22});
+  label.position.set(pos.x, 3.6, pos.z);
+  scene.add(label);
+  const p = {id:'p'+num, mesh, label, name:selectedAgent.name+' '+num, agent:selectedAgent.id,
+             team:currentTeam, number:num};
+  players.push(p);
+  renderPlayerList();
+  selectPlayer(p);
+}
+
+function selectPlayer(p){
+  selected = p;
+  renderProps();
+}
+
+function renderPlayerList(){
+  const el = document.getElementById('playerList');
+  if(!players.length){ el.textContent='Nenhum jogador posicionado ainda.'; return; }
+  el.innerHTML='';
+  players.forEach(p=>{
+    const row=document.createElement('div');
+    row.className='player-row';
+    row.innerHTML = `<span class="player-dot" style="background:${p.team==='atk'?'#ff5c72':'#4fa3ff'}"></span>${p.name}`;
+    row.onclick=()=>selectPlayer(p);
+    el.appendChild(row);
+  });
+  document.getElementById('stepInfo').textContent = steps.length+' etapa(s)';
+}
+
+function renderProps(){
+  const el = document.getElementById('propsPanel');
+  if(!selected){
+    el.innerHTML = '<h4>Propriedades</h4><div class="empty">Selecione um jogador ou objeto no mapa para editar.</div>';
+    return;
+  }
+  el.innerHTML = `
+    <h4>Propriedades</h4>
+    <label>Nome</label>
+    <input type="text" id="propName" value="${selected.name}">
+    <label>Agente</label>
+    <input type="text" value="${selected.agent}" disabled>
+    <label>Equipe</label>
+    <input type="text" value="${selected.team==='atk'?'Ataque':'Defesa'}" disabled>
+    <button class="danger" id="propDelete">Remover jogador</button>
+  `;
+  document.getElementById('propName').oninput = (e)=>{
+    selected.name = e.target.value;
+    scene.remove(selected.label);
+    selected.label = makeTextSprite(selected.name,{size:22});
+    selected.label.position.set(selected.mesh.position.x, 3.6, selected.mesh.position.z);
+    scene.add(selected.label);
+    renderPlayerList();
+  };
+  document.getElementById('propDelete').onclick = ()=>{
+    scene.remove(selected.mesh); scene.remove(selected.label);
+    players = players.filter(p=>p!==selected);
+    selected = null; renderPlayerList(); renderProps();
+  };
+}
+
+/* ---------- Desenho tático ---------- */
+function finishDrawing(){
+  if(drawBuffer.length<2) { drawBuffer=[]; return; }
+  const color = 0x28e0a4;
+  let mesh;
+  if(currentTool==='line' || currentTool==='arrow'){
+    const geo = new THREE.BufferGeometry().setFromPoints(drawBuffer.map(p=>new THREE.Vector3(p.x,0.1,p.z)));
+    mesh = new THREE.Line(geo, new THREE.LineBasicMaterial({color, linewidth:2}));
+    if(currentTool==='arrow'){
+      const last = drawBuffer[drawBuffer.length-1], prev = drawBuffer[drawBuffer.length-2];
+      const dir = new THREE.Vector3(last.x-prev.x,0,last.z-prev.z).normalize();
+      const head = new THREE.Mesh(new THREE.ConeGeometry(0.7,1.8,8), new THREE.MeshBasicMaterial({color}));
+      head.position.set(last.x,0.1,last.z);
+      head.rotation.x = Math.PI/2;
+      head.rotation.z = -Math.atan2(dir.x, dir.z)+Math.PI/2;
+      scene.add(head);
+      drawings.push({type:'arrowhead', mesh:head});
+    }
+  } else if(currentTool==='circle'){
+    const r = Math.hypot(drawBuffer[1].x-drawBuffer[0].x, drawBuffer[1].z-drawBuffer[0].z);
+    const geo = new THREE.RingGeometry(r-0.1,r,48);
+    mesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({color, side:THREE.DoubleSide, transparent:true, opacity:0.8}));
+    mesh.rotation.x=-Math.PI/2; mesh.position.set(drawBuffer[0].x,0.1,drawBuffer[0].z);
+  }
+  if(mesh){ scene.add(mesh); drawings.push({type:currentTool, mesh}); }
+  drawBuffer=[];
+}
+
+/* ---------- Interação com o mapa ---------- */
+renderer.domElement.addEventListener('click', (e)=>{
+  if(dragging===false){} // click fires after mouseup regardless
+  const pt = screenToFloor(e);
+  if(!pt) return;
+  if(currentTool==='player'){
+    addPlayer(pt);
+  } else if(['line','arrow','circle'].includes(currentTool)){
+    drawBuffer.push({x:pt.x,z:pt.z});
+    if(currentTool==='circle' && drawBuffer.length===2) finishDrawing();
+  } else if(currentTool==='marker'){
+    const mk = new THREE.Mesh(new THREE.ConeGeometry(0.8,2,4), new THREE.MeshBasicMaterial({color:0xffb020}));
+    mk.position.set(pt.x,1,pt.z); mk.rotation.x=Math.PI;
+    scene.add(mk); drawings.push({type:'marker', mesh:mk});
+  } else if(currentTool==='text'){
+    const txt = prompt('Texto da anotação:','');
+    if(txt){
+      const s = makeTextSprite(txt,{size:22, color:'#ffb020'});
+      s.position.set(pt.x,2.4,pt.z); scene.add(s);
+      drawings.push({type:'text', mesh:s});
+    }
+  } else if(currentTool==='select'){
+    // pick nearest player within radius
+    let closest=null, dist=2.2;
+    players.forEach(p=>{
+      const d = p.mesh.position.distanceTo(pt);
+      if(d<dist){dist=d; closest=p;}
+    });
+    selectPlayer(closest);
+  } else if(currentTool==='delete'){
+    let closest=null, dist=2.2;
+    players.forEach(p=>{ const d=p.mesh.position.distanceTo(pt); if(d<dist){dist=d;closest=p;} });
+    if(closest){
+      scene.remove(closest.mesh); scene.remove(closest.label);
+      players = players.filter(p=>p!==closest);
+      renderPlayerList(); renderProps();
+    }
+  }
+});
+window.addEventListener('dblclick', ()=>{ if(['line','arrow'].includes(currentTool)) finishDrawing(); });
+window.addEventListener('keydown', e=>{ if(e.key==='Enter') finishDrawing(); });
+
+/* ---------- Toolbar ---------- */
+document.getElementById('toolbar').addEventListener('click', e=>{
+  const btn = e.target.closest('button'); if(!btn) return;
+  document.querySelectorAll('#toolbar button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  currentTool = btn.dataset.tool;
+  drawBuffer=[];
+  const hints = {
+    select:'Clique em um jogador para selecioná-lo.',
+    player:'Clique no mapa para posicionar o jogador com o agente selecionado.',
+    line:'Clique dois ou mais pontos e dê duplo clique (ou Enter) para concluir.',
+    arrow:'Clique dois ou mais pontos e dê duplo clique (ou Enter) para concluir — a última direção define a ponta.',
+    circle:'Clique o centro e depois um ponto na borda.',
+    marker:'Clique no mapa para adicionar um marcador.',
+    text:'Clique no mapa e digite o texto da anotação.',
+    delete:'Clique em um jogador para removê-lo.',
+  };
+  document.getElementById('hint').textContent = hints[currentTool];
+});
+
+/* ---------- Agentes / equipe ---------- */
+function renderAgentList(){
+  const el = document.getElementById('agentList');
+  el.innerHTML='';
+  AGENTS.forEach(a=>{
+    const div=document.createElement('div');
+    div.className='agent-card'+(a.id===selectedAgent.id?' active':'');
+    div.innerHTML = `<div class="agent-swatch" style="background:#${a.color.toString(16)}">${a.name[0]}</div>
+      <div><div>${a.name}</div><div class="agent-role">${a.role}</div></div>`;
+    div.onclick=()=>{ selectedAgent=a; renderAgentList(); };
+    el.appendChild(div);
+  });
+}
+renderAgentList();
+document.querySelectorAll('.team-toggle button').forEach(b=>{
+  b.onclick=()=>{
+    document.querySelectorAll('.team-toggle button').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active'); currentTeam=b.dataset.team;
+  };
+});
+
+/* ---------- Timeline / etapas ---------- */
+function renderSteps(){
+  const el = document.getElementById('stepList'); el.innerHTML='';
+  steps.forEach((s,i)=>{
+    const chip=document.createElement('div');
+    chip.className='step-chip'+(i===activeStepIndex?' active':'');
+    chip.textContent = 'Etapa '+(i+1);
+    chip.onclick=()=>{ activeStepIndex=i; applyStep(s); renderSteps(); };
+    el.appendChild(chip);
+  });
+  document.getElementById('stepInfo').textContent = steps.length+' etapa(s)';
+}
+function captureStep(){
+  return {players: players.map(p=>({id:p.id, x:p.mesh.position.x, z:p.mesh.position.z}))};
+}
+function applyStep(step){
+  step.players.forEach(sp=>{
+    const p = players.find(pp=>pp.id===sp.id);
+    if(p){ p.mesh.position.x=sp.x; p.mesh.position.z=sp.z; p.label.position.set(sp.x,3.6,sp.z); }
+  });
+}
+document.getElementById('addStepBtn').onclick=()=>{
+  steps.push(captureStep()); activeStepIndex=steps.length-1; renderSteps();
+};
+
+let playing=false, playToken=0;
+document.getElementById('playBtn').onclick=async ()=>{
+  if(playing){ playing=false; document.getElementById('playBtn').textContent='▶ Reproduzir'; return; }
+  if(steps.length<2){ alert('Crie ao menos 2 etapas para reproduzir a execução.'); return; }
+  playing=true; const myToken=++playToken;
+  document.getElementById('playBtn').textContent='⏸ Pausar';
+  const dur = parseInt(document.getElementById('speedSel').value,10);
+  for(let i=0;i<steps.length-1 && playing && myToken===playToken;i++){
+    await tweenStep(steps[i], steps[i+1], dur);
+    activeStepIndex=i+1; renderSteps();
+  }
+  playing=false; document.getElementById('playBtn').textContent='▶ Reproduzir';
+};
+function tweenStep(a,b,duration){
+  return new Promise(resolve=>{
+    const start = performance.now();
+    function frame(now){
+      if(!playing) return resolve();
+      const t = Math.min(1,(now-start)/duration);
+      b.players.forEach(bp=>{
+        const ap = a.players.find(x=>x.id===bp.id); if(!ap) return;
+        const p = players.find(pp=>pp.id===bp.id); if(!p) return;
+        const x = ap.x + (bp.x-ap.x)*t, z = ap.z + (bp.z-ap.z)*t;
+        p.mesh.position.x=x; p.mesh.position.z=z; p.label.position.set(x,3.6,z);
+      });
+      if(t<1) requestAnimationFrame(frame); else resolve();
+    }
+    requestAnimationFrame(frame);
+  });
+}
+
+/* ---------- Exportar / Importar ---------- */
+document.getElementById('exportBtn').onclick=()=>{
+  const data = {
+    map:'haven_abstract_v1',
+    players: players.map(p=>({id:p.id,name:p.name,agent:p.agent,team:p.team,
+      x:p.mesh.position.x, z:p.mesh.position.z})),
+    steps
+  };
+  const blob = new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download='estrategia.json'; a.click();
+};
+document.getElementById('importBtn').onclick=()=>document.getElementById('fileInput').click();
+document.getElementById('fileInput').onchange=(e)=>{
+  const file = e.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    try{
+      const data = JSON.parse(reader.result);
+      players.forEach(p=>{scene.remove(p.mesh); scene.remove(p.label);});
+      players=[]; steps = data.steps||[]; activeStepIndex=-1;
+      (data.players||[]).forEach(sp=>{
+        const agent = AGENTS.find(a=>a.id===sp.agent)||AGENTS[0];
+        const teamColor = sp.team==='atk'?0xff5c72:0x4fa3ff;
+        const mesh = makePlayerMesh(teamColor);
+        mesh.position.set(sp.x,0,sp.z); scene.add(mesh);
+        const label = makeTextSprite(sp.name,{size:22});
+        label.position.set(sp.x,3.6,sp.z); scene.add(label);
+        players.push({id:sp.id,mesh,label,name:sp.name,agent:sp.agent,team:sp.team});
+      });
+      renderPlayerList(); renderSteps();
+    }catch(err){ alert('Arquivo inválido.'); }
+  };
+  reader.readAsText(file);
+};
+
+/* ---------- Loop de renderização ---------- */
+resize();
+function animate(){ requestAnimationFrame(animate); renderer.render(scene, camera); }
+animate();
+</script>
+</body>
+</html>
