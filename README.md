@@ -98,6 +98,3 @@ Gera os arquivos estáticos em `frontend/dist`.
 - Comparação entre duas estratégias lado a lado
 - Exportação de vídeo/imagem da execução
 
-## Licença
-
-Projeto de exemplo — ajuste a licença conforme sua necessidade antes de publicar.
